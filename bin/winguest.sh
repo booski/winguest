@@ -5,7 +5,7 @@ set -e
 base="$(dirname "$(readlink -f "$0")")"
 cd "$base"
 
-source ../settings.conf
+. ../settings.conf
 
 # Prerequisite checks
 if ! lsmod | grep -q -e kvm_amd -e kvm_intel; then
