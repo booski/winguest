@@ -1,0 +1,13 @@
+# Number of vcpu cores
+CPUS=4
+
+# Amount of RAM in MB
+RAM=32768
+
+# Network interface name
+NIC="eth1"
+
+# Devices to pass to guest.
+# Use bin/iommu.sh to find relevant IDs
+# All non-bridge devices in the same IOMMU group should be passed together
+DEVICES=1002:67df,1002:aaf0
