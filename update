@@ -5,19 +5,47 @@ set -e
 base="$(dirname "$(readlink -f "$0")")"
 cd "$base"
 
-for i in *; do
-    if [ -f "$i" ] || [ "root" = "$i" ]; then
-	continue
+BSUF="conf-old-virt~"
+update_file() {
+    local file="$1"
+    if [ -e "/$file" ]; then
+	rm -f "/$file.$BSUF"
+	mv "/$file" "/$file.$BSUF"
     fi
-    find "$i" -type f -exec cp --backup --suffix=.conf-old-virt~ "{}" "/{}" \;
-done
+    if ! [ -e "/$(dirname $file)" ]; then
+	mkdir -p "/$(dirname $file)"
+    fi
+    cp "$file" "/$file"
+    sed -e "s/%DEVICES%/$DEVICES/g" \
+	-i "/$file"
+}
 
-cd root
-for i in *; do
-    tgt="$base/root/$i"
+update_link() {
+    local link="$1"
+    local tgt="/usr/local/bin/$(basename "$link")"
+    if [ -h "$tgt" ]; then
+	rm "$tgt"
+    elif [ -e "$tgt" ] && ! [ -h "$tgt" ]; then
+	echo "Will not update: $tgt is not a symbolic link"
+	return
+    fi
     if ! [ -e "$tgt" ]; then
-	ln -s "$tgt" "/root/$i"
+	ln -s "$base/$link" "$tgt"
     fi
-done
+}
 
-update-initramfs -u
+update_conf() {
+    for file in $(find etc -type f); do
+	update_file "$file"
+    done
+    update-initramfs -u
+}
+
+update_bin() {
+    for file in $(find bin -type f); do
+	update_link "$file"
+    done
+}
+
+update_bin
+update_conf
