@@ -5,6 +5,8 @@ set -e
 base="$(dirname "$(readlink -f "$0")")"
 cd "$base"
 
+source settings.conf
+
 BSUF="conf-old-virt~"
 update_file() {
     local file="$1"
