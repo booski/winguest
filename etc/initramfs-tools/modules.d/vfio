@@ -1,5 +1,5 @@
 # IDs from ~/iommu.sh
-vfio_pci ids=1002:67df,1002:aaf0
+vfio_pci ids=%DEVICES%
 vfio
 vfio_iommu_type1
 vfio_virqfd
