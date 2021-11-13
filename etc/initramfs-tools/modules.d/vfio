@@ -1,4 +1,8 @@
-vfio_pci
+# IDs from ~/iommu.sh
+vfio_pci ids=1002:67df,1002:aaf0
 vfio
 vfio_iommu_type1
 vfio_virqfd
+
+# Make sure amdgpu is loaded after vfio
+softdep amdgpu pre: vfio vfio_pci
