@@ -5,7 +5,7 @@ set -e
 base="$(dirname "$(readlink -f "$0")")"
 cd "$base"
 
-. settings.conf
+. $(readlink -f settings.conf)
 
 BSUF="conf-old-virt~"
 update_file() {
@@ -49,5 +49,19 @@ update_bin() {
     done
 }
 
-update_bin
-update_conf
+case "$1" in
+    both )
+	update_bin
+	update_conf
+	;;
+    bin )
+	update_bin
+	;;
+    conf )
+	update_conf
+	;;
+    * )
+	echo "Invalid selection."
+	exit 1
+	;;
+esac
