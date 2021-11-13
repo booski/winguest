@@ -1,0 +1,20 @@
+#!/bin/sh
+
+set -e
+
+base="$(dirname "$(readlink -f "$0")")"
+cd "$base"
+
+for i in *; do
+    if [ -f "$i" ] || [ "root" = "$i" ]; then
+	continue
+    fi
+    find "$i" -type f -exec cp --backup --suffix=.conf-old-virt~ "{}" "/{}" \;
+done
+
+cd root
+for i in *; do
+    ln -s "$base/root/$i" "/root/$i"
+done
+
+update-initramfs -u
