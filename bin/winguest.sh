@@ -2,18 +2,20 @@
 
 set -e
 
-# SETTINGS
+base="$(dirname "$(readlink -f "$0")")"
+cd "$base"
 
-CPUS=4
-RAM=32768
-NIC="enp6s0:0"
-
-# END SETTINGS
+source ../settings.conf
 
 # Prerequisite checks
 if ! lsmod | grep -q -e kvm_amd -e kvm_intel; then
     echo "No paravirt support."
     exit 1
+fi
+
+if ! lspci -nnk | grep -q "Kernel driver in use: vfio"; then
+    echo "No devices are using vfio driver."
+    exit 2
 fi
 
 # Helpers
