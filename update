@@ -14,7 +14,10 @@ done
 
 cd root
 for i in *; do
-    ln -s "$base/root/$i" "/root/$i"
+    tgt="$base/root/$i"
+    if ! [ -e "$tgt" ]; then
+	ln -s "$tgt" "/root/$i"
+    fi
 done
 
 update-initramfs -u
