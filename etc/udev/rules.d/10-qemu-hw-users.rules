@@ -1,1 +1,2 @@
 SUBSYSTEM=="vfio", OWNER="root", GROUP="kvm"
+SUBSYSTEM=="usb", OWNER="root", GROUP="kvm"

@@ -6,7 +6,6 @@ base="$(dirname "$(readlink -f "$0")")"
 cd "$base"
 
 . $(readlink -f settings.conf)
-RAM_LIMIT=$((RAM * 2048)) # needed for limits.d
 
 BSUF="conf-old-virt~"
 update_file() {
@@ -20,7 +19,6 @@ update_file() {
     fi
     cp "$file" "/$file"
     sed -e "s/%DEVICES%/$DEVICES/g" \
-	-e "s/%RAM_LIMIT%/$RAM_LIMIT/g" \
 	-i "/$file"
 }
 
