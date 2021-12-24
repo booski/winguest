@@ -4,8 +4,11 @@ CPUS=4
 # Amount of RAM in MB
 RAM=32768
 
-# Network interface name
-NIC="enp4s0:0"
+# Bridge to connect on
+BRIDGE=br0
+
+# Name of tap interface to be created
+TAP=vmtap0
 
 # Devices to pass to guest
 # Use bin/iommu.sh to find relevant IDs
