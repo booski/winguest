@@ -2,6 +2,7 @@
 CPUS=4
 
 # Amount of RAM in MB
+# Should be even multiple of 2048
 RAM=32768
 
 # Bridge to connect on

@@ -27,48 +27,89 @@ set_sys() {
     echo "$2" | sudo tee "/proc/sys/$1"
 }
 
-# Restore information
-hugepages_orig=$(get_sys vm/nr_hugepages)
-
-teardown() {
-    set +e
-    set_sys vm/nr_hugepages "$hugepages_orig"
-}
-
-# Ensure restoration
-trap teardown EXIT
-
+# Hugepages settings
 nr_hugepages=$((RAM / 2048))
 set_sys vm/nr_hugepages "$nr_hugepages"
 
+
+# Sound settings
 export QEMU_AUDIO_DRV=pa
 export QEMU_PA_SAMPLES=8192
 export QEMU_AUDIO_TIMER_PERIOD=99
 export QEMU_PA_SERVER=/run/user/1000/pulse/native
 
-vars="$(mktemp)"
-cp /usr/share/OVMF/OVMF_VARS.fd "$vars"
 
+# UEFI settings
+vars="$base/../uefivars.bin"
+if ! [ -e "$vars" ]; then
+    sudo cp /usr/share/OVMF/OVMF_VARS.fd "$vars"
+    sudo chgrp kvm "$vars"
+    sudo chmod g+w "$vars"
+fi
+
+
+# Auto-detect number of threads per core. Not in use due to apparent qemu bug
 threads="$(lscpu | grep 'Thread(s) per core:' | awk '{print $NF}')"
 
-devices=''
+
+# Devices to pass
+devices='-device ioh3420,bus=pcie.0,addr=1c.0,multifunction=on,port=1,chassis=1,id=root.1'
 for i in $(echo "$DEVICES" | sed 's/,/ /g'); do
     id="$(lspci -nnk | grep "$i" | awk '{print $1}')"
-    device="-device vfio-pci,host=$id"
+    device="-device vfio-pci,host=$id,bus=root.1"
     if [ "$(echo "$id" | cut -d. -f2)" = 0 ]; then
 	device="$device,multifunction=on"
     fi
     devices="$devices $device"
 done
 
-cdrom=''
-if [ -n "$ISO" ]; then
-    cdrom="-drive index=1,media=cdrom,file=$ISO"
-    # vfio driver ISO from
-    # https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
-    cdrom="$cdrom -drive index=2,media=cdrom,file=$base/../virtio-win.iso"
+
+# Pass logitech receiver if present
+recv="$(lsusb | grep "Logitech, Inc\. Unifying Receiver$" | awk '{print $6}')"
+if [ -n "$recv" ]; then
+    vendor="$(echo "$recv" | awk -F':' '{print $1}')"
+    product="$(echo "$recv" | awk -F':' '{print $2}' | sed 's/://')"
+    devices="$devices -device usb-host,vendorid=0x$vendor,productid=0x$product"
 fi
 
+
+# Install media
+cdrom=''
+if [ -n "$ISO" ]; then
+    cdrom="-drive index=0,media=cdrom,file=$ISO"
+    # vfio driver ISO from
+    # https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+    cdrom="$cdrom -drive index=1,media=cdrom,file=$base/../virtio-win.iso"
+fi
+
+
+# Network settings
+if ! ip link | grep -q "$TAP"; then
+    sudo ip tuntap add mode tap "$TAP"
+fi
+
+if ! sudo ovs-vsctl show | grep -q "Port $TAP"; then
+    sudo ovs-vsctl add-port "$BRIDGE" "$TAP"
+    sudo ifconfig "$TAP" up
+fi
+
+# Use software rendering if requested
+display="-vga none -nographic $devices"
+if [ "$1" = 'sw' ]; then
+    display=""
+fi
+
+glass=''
+if which looking-glass-client >/dev/null; then
+    glass="-device ivshmem-plain,memdev=ivshmem,bus=pcie.0 \
+    	   -object memory-backend-file,id=ivshmem,share=on,mem-path=/dev/shm/looking-glass,size=32M \
+	   -device virtio-serial-pci \
+	   -spice port=5900,addr=127.0.0.1,disable-ticketing \
+    	   -chardev spicevmc,id=vdagent,name=vdagent \
+	   -device virtserialport,chardev=vdagent,name=com.redhat.spice.0"
+fi
+
+# RUN!!!1
 set -x
 qemu-system-x86_64 -name winguest,process=winguest \
 		   -machine type=q35,accel=kvm \
@@ -76,12 +117,17 @@ qemu-system-x86_64 -name winguest,process=winguest \
 		   -smp "$CPUS",sockets=1,cores="$CPUS",threads="1" \
 		   -m "$RAM"M \
 		   -rtc clock=host,base=localtime \
-		   -vga none -nographic \
 		   -serial none -parallel none \
 		   -device intel-hda -device hda-duplex \
-		   $devices \
+		   -usb \
+		   -device usb-mouse \
+		   -device usb-kbd \
+		   -device qemu-xhci,id=xhci \
+		   $display \
 		   -drive if=pflash,format=raw,readonly,file=/usr/share/OVMF/OVMF_CODE.fd \
 		   -drive if=pflash,format=raw,file="$vars" \
+		   $glass \
 		   -boot order=dc \
-		   -drive id=disk0,if=virtio,cache=none,format=raw,file="$STORAGE" \
-		   $cdrom
+		   -drive index=0,id=disk0,if=virtio,cache=none,format=raw,file="$STORAGE" \
+		   $cdrom \
+		   -nic tap,ifname="$TAP",script=/bin/true,downscript=/bin/true
