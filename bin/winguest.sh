@@ -64,14 +64,15 @@ for i in $(echo "$DEVICES" | sed 's/,/ /g'); do
 done
 
 
-# Pass logitech receiver if present
-recv="$(lsusb | grep "Logitech, Inc\. Unifying Receiver$" | awk '{print $6}')"
-if [ -n "$recv" ]; then
-    vendor="$(echo "$recv" | awk -F':' '{print $1}')"
-    product="$(echo "$recv" | awk -F':' '{print $2}' | sed 's/://')"
-    devices="$devices -device usb-host,vendorid=0x$vendor,productid=0x$product"
-fi
-
+# Pass extra devices if present
+for dev in "Logitech, Inc\. Unifying Receiver" "Microsoft Corp\. Xbox One S Controller"; do
+    recv="$(lsusb | grep "$dev$" | awk '{print $6}')"
+    if [ -n "$recv" ]; then
+	vendor="$(echo "$recv" | cut -d: -f1)"
+	product="$(echo "$recv" | cut -d: -f2)"
+	devices="$devices -device usb-host,vendorid=0x$vendor,productid=0x$product"
+    fi
+done
 
 # Install media
 cdrom=''
@@ -131,3 +132,5 @@ qemu-system-x86_64 -name winguest,process=winguest \
 		   -drive index=0,id=disk0,if=virtio,cache=none,format=raw,file="$STORAGE" \
 		   $cdrom \
 		   -nic tap,ifname="$TAP",script=/bin/true,downscript=/bin/true
+set +x
+echo # make sure the prompt goes on a new line after quitting qemu
