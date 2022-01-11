@@ -19,4 +19,7 @@ DEVICES=1002:67df,1002:aaf0
 # Backing storage for guest data
 STORAGE=/dev/hydrogen/windisk
 
+# ISO media to be passed as a drive to the VM. Useful for installation.
+# If blank, no media will be passed. A VFIO driver ISO will always be passed
+# along with any configured ISO.
 ISO=/home/thuning/downloads/Win10_21H1_EnglishInternational_x64.iso
