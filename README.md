@@ -6,16 +6,16 @@ PCIe passthrough. It is tested on Debian buster.
 
 The VM setup script expects working PulseAudio.
 
-The scripts expect that the GPU to be passed is a unique PCI ID, so two identical GPUs will cause 
-problems. My testing has been done on AMD Ryzen 7 5700G and AMD Radeon 480, passing the 480 to the VM 
-and using the integrated graphics for the host.
+The scripts expect that the GPU to be passed is an AMD GPU with a unique PCI ID, so two identical 
+GPUs will cause problems. My testing has been done on AMD Ryzen 7 5700G and AMD Radeon 480, passing 
+the 480 to the VM and using the integrated graphics for the host.
 
 ## Setup
 
 Clone the repo and copy settings.conf.example to settings.conf and make changes as necessary.
 
-The script `iommu.sh` will output the iommu groups on the system. This document expects that 
-the devices that are passed are all isolated in one iommu group. If that isn't the case, strange 
+The script `iommu.sh` will output the iommu groups on the system. The scripts expect that the 
+devices that are passed are all isolated in one iommu group. If that isn't the case, strange 
 things will happen, possibly including the VM not starting at all.
 
 Install the packages listed in `packages.install`, for example:
@@ -56,8 +56,6 @@ the passed GPU. This is useful for debugging/safe mode.
 When installing windows, you will probably need to have a display connected to your passed GPU in order 
 to be able to install the graphics drivers. Once everything works as expected, I recommend installing
 https://looking-glass.io/ for seamless desktop integration without a need for a separate display.
-
-Consumer Nvidia GPUs will require some finessing due to arbitrary driver limitations on Nvidia's part.
 
 `winguest.sh` will automatically pass the following USB devices if they are detected (as identified by lsusb):
  - Logitech, Inc. Unifying Receiver
