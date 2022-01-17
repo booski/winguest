@@ -105,7 +105,7 @@ if which looking-glass-client >/dev/null; then
     glass="-device ivshmem-plain,memdev=ivshmem,bus=pcie.0 \
     	   -object memory-backend-file,id=ivshmem,share=on,mem-path=/dev/shm/looking-glass,size=32M \
 	   -device virtio-serial-pci \
-	   -spice port=5900,addr=127.0.0.1,disable-ticketing \
+	   -spice port=5900,addr=127.0.0.1,disable-ticketing=on \
     	   -chardev spicevmc,id=vdagent,name=vdagent \
 	   -device virtserialport,chardev=vdagent,name=com.redhat.spice.0"
 fi
@@ -114,8 +114,8 @@ fi
 set -x
 qemu-system-x86_64 -name winguest,process=winguest \
 		   -machine type=q35,accel=kvm \
-		   -cpu host \
-		   -smp "$CPUS",sockets=1,cores="$CPUS",threads="1" \
+		   -cpu host,topoext=on \
+		   -smp sockets=1,cores="$CPUS",threads="$threads" \
 		   -m "$RAM"M \
 		   -rtc clock=host,base=localtime \
 		   -serial none -parallel none \
@@ -125,7 +125,7 @@ qemu-system-x86_64 -name winguest,process=winguest \
 		   -device usb-kbd \
 		   -device qemu-xhci,id=xhci \
 		   $display \
-		   -drive if=pflash,format=raw,readonly,file=/usr/share/OVMF/OVMF_CODE.fd \
+		   -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd \
 		   -drive if=pflash,format=raw,file="$vars" \
 		   $glass \
 		   -boot order=dc \
