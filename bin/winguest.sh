@@ -35,7 +35,7 @@ set_sys vm/nr_hugepages "$nr_hugepages"
 # Sound settings
 export QEMU_AUDIO_DRV=pa
 export QEMU_PA_SAMPLES=8192
-export QEMU_AUDIO_TIMER_PERIOD=99
+export QEMU_AUDIO_TIMER_PERIOD=100
 export QEMU_PA_SERVER=/run/user/1000/pulse/native
 
 
@@ -65,8 +65,10 @@ done
 
 
 # Pass extra devices if present
-for dev in "Logitech, Inc\. Unifying Receiver" "Microsoft Corp\. Xbox One S Controller"; do
-    recv="$(lsusb | grep "$dev$" | awk '{print $6}')"
+for dev in "Logitech, Inc. Unifying Receiver" \
+	       "Microsoft Corp. Xbox Wireless Adapter for Windows" \
+	       "Nintendo Co., Ltd Switch Pro Controller"; do
+    recv="$(lsusb | grep -F "$dev$" | awk '{print $6}')"
     if [ -n "$recv" ]; then
 	vendor="$(echo "$recv" | cut -d: -f1)"
 	product="$(echo "$recv" | cut -d: -f2)"
@@ -101,16 +103,21 @@ if [ "$1" = 'sw' ]; then
 fi
 
 glass=''
-if which looking-glass-client >/dev/null; then
+if ! [ "$1" = 'sw' ] && which looking-glass-client >/dev/null; then
     glass="-device ivshmem-plain,memdev=ivshmem,bus=pcie.0 \
     	   -object memory-backend-file,id=ivshmem,share=on,mem-path=/dev/shm/looking-glass,size=32M \
 	   -device virtio-serial-pci \
+	   -device virtio-keyboard-pci \
+	   -device virtio-mouse-pci \
 	   -spice port=5900,addr=127.0.0.1,disable-ticketing=on \
     	   -chardev spicevmc,id=vdagent,name=vdagent \
 	   -device virtserialport,chardev=vdagent,name=com.redhat.spice.0"
 fi
 
 # RUN!!!1
+echo
+echo "If looking glass won't connect, capture input and press Win+X, U, R to reboot client."
+echo
 set -x
 qemu-system-x86_64 -name winguest,process=winguest \
 		   -machine type=q35,accel=kvm \
@@ -121,14 +128,11 @@ qemu-system-x86_64 -name winguest,process=winguest \
 		   -serial none -parallel none \
 		   -device intel-hda -device hda-duplex \
 		   -usb \
-		   -device usb-mouse \
-		   -device usb-kbd \
 		   -device qemu-xhci,id=xhci \
 		   $display \
 		   -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE.fd \
 		   -drive if=pflash,format=raw,file="$vars" \
 		   $glass \
-		   -boot order=dc \
 		   -drive index=0,id=disk0,if=virtio,cache=none,format=raw,file="$STORAGE" \
 		   $cdrom \
 		   -nic tap,ifname="$TAP",script=/bin/true,downscript=/bin/true
