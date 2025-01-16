@@ -65,11 +65,12 @@ done
 
 
 # Pass extra devices if present
-for dev in "Logitech, Inc. Unifying Receiver" \
-	       "Microsoft Corp. Xbox Wireless Adapter for Windows" \
-	       "Nintendo Co., Ltd Switch Pro Controller"; do
-    recv="$(lsusb | grep -F "$dev$" | awk '{print $6}')"
+for dev in "Logitech, Inc\. Unifying Receiver" \
+	       "Microsoft Corp\. Xbox Wireless Adapter for Windows" \
+	       "Nintendo Co\., Ltd Switch Pro Controller"; do
+    recv="$(lsusb | grep "$dev$" | awk '{print $6}')"
     if [ -n "$recv" ]; then
+	echo "Detected '$dev', passing it to guest."
 	vendor="$(echo "$recv" | cut -d: -f1)"
 	product="$(echo "$recv" | cut -d: -f2)"
 	devices="$devices -device usb-host,vendorid=0x$vendor,productid=0x$product"
