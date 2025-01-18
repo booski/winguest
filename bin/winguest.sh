@@ -24,7 +24,7 @@ get_sys() {
 }
 
 set_sys() {
-    echo "$2" | sudo tee "/proc/sys/$1"
+    echo "$2" | sudo tee "/proc/sys/$1" >/dev/null
 }
 
 # Hugepages settings
